@@ -8,7 +8,7 @@ static int survive_config_submit(struct SurviveUSBInfo *usbInfo) {
 			   survive_colorize(usbInfo->device_info->name), usbInfo->nextCfgSubmitTime);
 	usbInfo->nextCfgSubmitTime = -1;
 
-	int rc = survive_usb_transfer_submit(config_packet->tx);
+	int rc = survive_usb_transfer_submit(config_packet->tx);	
 	if (rc) {
 		SV_WARN("Failed to submit transfer %s %s (%d)", survive_colorize_codename(usbInfo->so),
 				survive_colorize(usbInfo->device_info->name), rc);

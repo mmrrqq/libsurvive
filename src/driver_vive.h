@@ -1,5 +1,11 @@
 #pragma once
 
+#if defined(WINDOWS) || defined(WIN32) || defined(_WIN32)
+#define MAGIC_COMMAND_LENGTH 64
+#else
+#define MAGIC_COMMAND_LENGTH
+#endif
+
 #ifdef HIDAPI
 #if defined(WINDOWS) || defined(WIN32) || defined(_WIN32)
 #include <windows.h>

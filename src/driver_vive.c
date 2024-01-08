@@ -219,16 +219,16 @@ static uint8_t vive_magic_raw_mode_1[] = {VIVE_REPORT_CHANGE_MODE, 0x01, 0x00, 0
 static uint8_t vive_request_version_info[] = {VIVE_REPORT_VERSION};
 
 // Windows needs 64 size for the wireless dongle
-static uint8_t vive_magic_rf_raw_mode_0[64] = {
+static uint8_t vive_magic_rf_raw_mode_0[MAGIC_COMMAND_LENGTH] = {
 	VIVE_REPORT_COMMAND, VIVE_COMMAND_CHANGE_PROTOCOL, 0x6, 0x01, 0x00, 0x00, 0x02, 0x00, 0x00};
 static uint8_t vive_magic_rf_raw_mode_1[] = {
 	VIVE_REPORT_COMMAND, VIVE_COMMAND_CHANGE_PROTOCOL, 0x6, 0x01, 0x01, 0x00, 0x02, 0x00, 0x00};
 // Windows needs 64 size for the wireless dongle
-static uint8_t vive_magic_protocol_switch[64] = {
+static uint8_t vive_magic_protocol_switch[MAGIC_COMMAND_LENGTH] = {
 	VIVE_REPORT_COMMAND, VIVE_COMMAND_CHANGE_PROTOCOL, 0x3, 0x00, 0x01, 0x00};
 static uint8_t vive_request_pairing[] = {VIVE_REPORT_COMMAND, VIVE_COMMAND_PAIR, 0x03, 0x01, 0x10, 0x27};
 // Windows needs 64 size for the wireless dongle
-static uint8_t vive_magic_protocol_super_magic[64] = {VIVE_REPORT_COMMAND,
+static uint8_t vive_magic_protocol_super_magic[MAGIC_COMMAND_LENGTH] = {VIVE_REPORT_COMMAND,
 													VIVE_COMMAND_CONFIGURE_RADIO,
 													0x10,
 													0xbe,
@@ -259,7 +259,7 @@ const struct DeviceInfo KnownDeviceTypes[] = {
 	 .endpoints = {{.num = 0x81, .name = "Mainboard", .type = USB_IF_HMD_HEADSET_INFO}},
 	 .magics = {MAGIC_CTOR(true, vive_magic_power_on), MAGIC_CTOR(false, vive_magic_power_off)}},
 	{.vid = 0x0bb4,
-	 .pid = 0x030e,
+	 .pid = 0x0309,
 	 .type = USB_DEV_HMD,
 	 .name = "BRD",
 	 .codename = "",
@@ -741,7 +741,7 @@ int survive_vive_add_usb_device(SurviveViveData *sv, survive_usb_device_t d) {
 	uint16_t idVendor;
 	uint16_t idProduct;
 	uint8_t class_id;
-	int ret = survive_get_ids(d, &idVendor, &idProduct, &class_id);
+	int ret = survive_get_ids(d, &idVendor, &idProduct, &class_id);	
 	if (ret < 0) {
 		SV_WARN("Could not get vid:pid for usb device.")
 		return -2;
@@ -749,7 +749,10 @@ int survive_vive_add_usb_device(SurviveViveData *sv, survive_usb_device_t d) {
 
 	const struct DeviceInfo *info = find_known_device(ctx, idVendor, idProduct);
 	if (info == 0) {
-		SV_VERBOSE(110, "USB device %04x:%x4x in an unknown type; ignoring", idVendor, idProduct);
+		if (idVendor == 0x0bb4) {
+			SV_VERBOSE(50, "USB device %04x:%04x vendor is known!", idVendor, idProduct);
+		}
+		SV_VERBOSE(110, "USB device %04x:%04x in an unknown type; ignoring", idVendor, idProduct);
 		return -1;
 	}
 
@@ -999,8 +1002,11 @@ int survive_vive_usb_poll(SurviveContext *ctx, void *v) {
 		last_print = now;
 	}
 
+
 	for (int i = 0; i < sv->udev_cnt; i++) {
 		struct SurviveUSBInfo *usbInfo = sv->udev[i];
+		SV_VERBOSE(10, "usb device: %s", survive_colorize(usbInfo->device_info->codename));
+		SV_VERBOSE(10, "usb device pid: %04x", usbInfo->device_info->pid);
 
 		if ((usbInfo->device_info->pid == 0x2102 || usbInfo->device_info->pid == 0x2101) && usbInfo->so == 0 &&
 			sv->requestPairing && (sv->lastPairTime + 1) < now && now > 3) {

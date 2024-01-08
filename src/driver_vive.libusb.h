@@ -82,7 +82,10 @@ static survive_usb_device_t get_next_device(survive_usb_device_enumerator *itera
 
 STATIC_CONFIG_ITEM(LIBUSB_LOG_LEVEL, "libusb-log-level", 'i', "Log level of libusb", LIBUSB_LOG_LEVEL_WARNING)
 static int survive_usb_subsystem_init(SurviveViveData *sv) {
+	SurviveContext *ctx = sv->ctx;
+	SV_VERBOSE(10, "before init");
 	int rtn = libusb_init(&sv->usbctx);
+	SV_VERBOSE(10, "after init");
 	int log_level = survive_configi(sv->ctx, LIBUSB_LOG_LEVEL_TAG, SC_GET, LIBUSB_LOG_LEVEL_WARNING);
 #if LIBUSB_API_VERSION < 0x01000106
 	libusb_set_debug(NULL, log_level);
@@ -91,7 +94,7 @@ static int survive_usb_subsystem_init(SurviveViveData *sv) {
 #endif
 
 	const struct libusb_version *v = libusb_get_version();
-	SurviveContext *ctx = sv->ctx;
+	// SurviveContext *ctx = sv->ctx;
 	SV_VERBOSE(10, "libusb version %d.%d.%d.%d (log level %d)", v->major, v->minor, v->micro, v->nano, log_level);
 	return rtn;
 }
@@ -172,16 +175,18 @@ static int survive_open_usb_device(SurviveViveData *sv, survive_usb_device_t d, 
 
 	libusb_set_auto_detach_kernel_driver(usbInfo->handle, 1);
 	for (int j = 0; j < conf->bNumInterfaces; j++) {
-		bool interface_is_microphone = false;
+		bool ignore_interface = false;
 
 		for (int k = 0; k < conf->interface[j].num_altsetting; k++) {
 			const struct libusb_interface_descriptor *d = &conf->interface[j].altsetting[k];
-			if (d->bInterfaceClass == LIBUSB_CLASS_AUDIO) {
-				interface_is_microphone = true;
+			// TODO: or only account for HID devices?
+			SV_VERBOSE(110, "Interface device class: %d", d->bInterfaceClass);
+			if (d->bInterfaceClass == LIBUSB_CLASS_HUB || d->bInterfaceClass == LIBUSB_CLASS_AUDIO) {
+				ignore_interface = true;
 			}
 		}
-		if (interface_is_microphone) {
-		        SV_VERBOSE(10, "Not claiming interface %d of %s since it is an audio interface", j, survive_colorize(info->name));
+		if (ignore_interface) {
+			SV_VERBOSE(10, "Not claiming interface %d of %s since it is not an HID device", j, survive_colorize(info->name));
 			continue;
 		}
 
